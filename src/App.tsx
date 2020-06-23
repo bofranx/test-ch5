@@ -1,133 +1,72 @@
-import React, { TouchEvent } from 'react';
-import { useSubscribeString, usePublishAnalog, useSubscribeAnalog } from 'react-ch5';
-import logo from './assets/logo.svg';
-import avsp from './assets/avsp.png';
-import './App.css';
-import PushButton from './components/PushButton';
-
-// TODO set this to your machine name or IP address on the same network as the panel to see live updating version via the "navigate there" link
-// if this is set to your dev machine, when you run "yarn start", then click the "navigate there" link on the panel, you will have live hot-module-reload
-const devMachine = "my-laptop";
-
-const InterlockedButtons = () => (
-  <>
-    Interlocked:
-    <PushButton publishSignalName="21" subscribeSignalName="21" >A</PushButton>
-    <PushButton publishSignalName="22" subscribeSignalName="22" >B</PushButton>
-    <PushButton publishSignalName="23" subscribeSignalName="23" >C</PushButton>
-    <PushButton publishSignalName="24" subscribeSignalName="24" >D</PushButton>
-  </>
-)
-
-const ToggleButtons = () => (
-  <>
-    Toggles:
-    <PushButton publishSignalName="31" subscribeSignalName="31" >1</PushButton>
-    <PushButton publishSignalName="32" subscribeSignalName="32" >2</PushButton>
-  </>
-)
-
-type StringDivProps = {
-  stringsubscribeSignalName: string,
-}
-
-const StringDiv: React.FunctionComponent<StringDivProps> = (props) => {
-  const value = useSubscribeString(props.stringsubscribeSignalName);
-
-  return <div style={{ margin: '0 1rem', display: "flex", justifyContent: 'center', alignItems: 'center', border: '5px solid black', width: '20rem', height: '4rem', backgroundColor: '#aaa' }}>{value}</div>;
-}
-
-type AnalogDivProps = {
-  analogSendSignalName: string,
-  analogsubscribeSignalName: string,
-}
-
-function clamp(value: number, min: number, max: number) {
-  if (value < min)
-    return min;
-  else if (value > max)
-    return max;
-
-  return value;
-}
-
-const AnalogDiv: React.FunctionComponent<AnalogDivProps> = (props) => {
-  const publish = usePublishAnalog(props.analogSendSignalName);
-  const value = useSubscribeAnalog(props.analogsubscribeSignalName);
-  const divref = React.useRef<HTMLDivElement>(null);
-
-  const percent = value * 100 / 65535;
-
-  const percentString = percent + '%';
-
-  const touch = (event:TouchEvent<HTMLDivElement>) => {
-    if (divref.current) {
-      const clientRect = divref.current.getBoundingClientRect();
-      const width = clientRect.right - clientRect.left;
-
-      for (var i = 0; i < event.changedTouches.length; i++) {
-        const value = clamp(Math.round(65535 * (event.changedTouches[i].pageX - clientRect.left) / width), 0, 65535);
-        publish(value);
-        console.log(value);
-      }
-    }
-  }
-
-  return (
-    <div ref={divref} onTouchStart={touch} onTouchMove={touch} style={{ margin: '0 1rem', border: '1px solid black', display: 'inline-block', width: '20rem', height: '4rem', backgroundColor: '#aaa' }}> 
-      <div style={{backgroundColor: '#2f2', width: percentString, height: '4rem'}}></div>
-    </div>
-  );
-}
-
-const Container: React.FunctionComponent = (props) => (
-  <div className="App-container">
-    {props.children}
-  </div>
-)
-
-const VolumeControl = () => (
-  <>
-    Volume:
-    <PushButton publishSignalName="35" subscribeSignalName="35" >-</PushButton>
-    <AnalogDiv analogSendSignalName="21" analogsubscribeSignalName="21" />
-    <PushButton publishSignalName="34" subscribeSignalName="34" >+</PushButton>
-  </>
-)
-
+import React from "react";
+import NavButton from "./components/NavButton";
+import { motion } from "framer-motion";
+import Cameras from "./components/Cameras";
+import { usePublishDigital, useSubscribeDigital } from "react-ch5";
 
 function App() {
+  const press = usePublishDigital("21");
+  const feedback = useSubscribeDigital("21");
+
+  const container = {
+    open: {
+      opacity: 1,
+      scale: 1,
+    },
+    close: { opacity: 0, scale: 0 },
+  };
   return (
-    <div className="App">
-      <header className="App-header">
-        <div className="App-wrap-logo">
-          <img src={logo} className="App-logo" alt="react logo" />
-          <img src={avsp} className="App-logo" alt="avsp logo" />
-        </div>
-        <div>
-          <p>
-            Configure your development machine's address in the top of <code>App.tsx</code>, it is currently set to <code>{devMachine}</code><br />
-            Use <code>yarn start</code> then <a href={"http://" + devMachine + ":3000/"}>navigate there</a> to see live updates<br />
-            Edit <code>src/App.tsx</code> and save to reload
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </div>
-        <div>
-          <Container><InterlockedButtons /><StringDiv stringsubscribeSignalName="21" /></Container>
-          <Container><ToggleButtons /></Container>
-          <Container><VolumeControl /></Container>
-        </div>
-      </header>
-      <footer>
-        {window.location.href /* this way, we can see whether we are looking at internal panel url or live dev server*/}
-      </footer>
+    <div className="overflow-hidden">
+      <div className="absolute w-full h-screen p-0 m-0">
+        <motion.div
+          className="w-full h-screen flex justify-center items-center"
+          initial="open"
+          animate={feedback ? "close" : "open"}
+          exit="close"
+          variants={container}
+        >
+          <NavButton
+            svg={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                x="0px"
+                y="0px"
+                viewBox="0 0 172 172"
+                className="w-10 h-10 fill-current"
+              >
+                <path d="M20.64,20.64c-7.56531,0 -13.76,6.19469 -13.76,13.76v61.92c0,7.56531 6.19469,13.76 13.76,13.76h34.4v27.52c0,7.56531 6.19469,13.76 13.76,13.76h82.56c7.56531,0 13.76,-6.19469 13.76,-13.76v-61.92c0,-7.56531 -6.19469,-13.76 -13.76,-13.76h-34.4v-27.52c0,-7.56531 -6.19469,-13.76 -13.76,-13.76zM20.64,27.52h82.56c3.84313,0 6.88,3.03688 6.88,6.88v27.52h-41.28c-7.56531,0 -13.76,6.19469 -13.76,13.76v27.52h-34.4c-3.84312,0 -6.88,-3.03687 -6.88,-6.88v-61.92c0,-3.84312 3.03688,-6.88 6.88,-6.88zM68.8,68.8h82.56c3.84313,0 6.88,3.03688 6.88,6.88v61.92c0,3.84313 -3.03687,6.88 -6.88,6.88h-82.56c-3.84312,0 -6.88,-3.03687 -6.88,-6.88v-30.315c0.09406,-0.45687 0.09406,-0.94062 0,-1.3975v-30.2075c0,-3.84312 3.03688,-6.88 6.88,-6.88z"></path>
+              </svg>
+            }
+            label="Share"
+            color="green"
+            onClick={() => {}}
+          />
+          <NavButton
+            svg={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                x="0px"
+                y="0px"
+                viewBox="0 0 172 172"
+                className="w-10 h-10 fill-current"
+              >
+                <path d="M17.2,30.96c-9.46,0 -17.2,7.74 -17.2,17.2v75.68c0,9.46 7.74,17.2 17.2,17.2h92.88c9.46,0 17.2,-7.74 17.2,-17.2v-18.3825l39.6675,21.3925l5.0525,2.795v-87.29l-5.0525,2.795l-39.6675,21.3925v-18.3825c0,-9.46 -7.74,-17.2 -17.2,-17.2zM17.2,37.84h92.88c5.73781,0 10.32,4.58219 10.32,10.32v75.68c0,5.73781 -4.58219,10.32 -10.32,10.32h-92.88c-5.73781,0 -10.32,-4.58219 -10.32,-10.32v-75.68c0,-5.73781 4.58219,-10.32 10.32,-10.32zM165.12,53.8575v64.285l-37.84,-20.425v-23.435z"></path>
+              </svg>
+            }
+            label="Cameras"
+            color="blue"
+            onClick={() => {
+              press(true);
+            }}
+          />
+        </motion.div>
+      </div>
+      <Cameras
+        isVisible={feedback}
+        onClick={() => {
+          press(false);
+        }}
+      />
     </div>
   );
 }

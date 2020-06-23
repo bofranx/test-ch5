@@ -1,0 +1,11 @@
+{
+  "cues": [
+    {
+      "type": "boolean",
+      "event": "test",
+      "trigger": "link",
+      "actions": []
+    }
+  ],
+  "onStart": [{ "state": "test", "type": "boolean", "value": false }]
+}
