@@ -18,7 +18,7 @@
     "classnames": "^2.2.6",
     "framer-motion": "^1.11.0",
     "ncp": "^2.0.0",
-    "node-sass": "^4.14.1",
+    "node-sass": "^7.0.0",
     "react": "^16.13.1",
     "react-ch5": "^0.1.2",
     "react-dom": "^16.13.1",
